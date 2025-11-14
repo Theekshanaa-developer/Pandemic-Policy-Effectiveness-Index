@@ -1,0 +1,91 @@
+"""
+1_india_case_study/india_analysis.py
+
+Generates India time-series analysis and the key figure:
+    - Stringency Index vs Cases (7-day average)
+
+Output is saved to:
+    1_india_case_study/outputs/india_stringency_vs_cases.png
+"""
+
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from utils.preprocess import load_data
+from utils.common import save_fig, ensure_outdir
+
+# Output directory
+OUT_DIR = os.path.join("1_india_case_study", "outputs")
+ensure_outdir(OUT_DIR)
+
+
+def get_india_timeseries(df, country_name="India"):
+    """Filter and return India’s time-series sorted by date."""
+    dfc = df[df["country"].str.lower() == country_name.lower()].sort_values("date")
+    if dfc.empty:
+        raise ValueError(f"No data found for country: {country_name}")
+    return dfc
+
+
+def plot_stringency_vs_cases(dfc, outpath):
+    """Plot India’s smoothed cases vs stringency index with annotations."""
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+    ax2 = ax1.twinx()
+
+    # left axis: cases
+    ax1.plot(
+        dfc["date"],
+        dfc["cases_7d"],
+        label="Cases per 100k (7-day avg)",
+        linewidth=2
+    )
+    ax1.set_ylabel("Cases per 100k (7d)")
+    ax1.set_xlabel("Date")
+
+    # right axis: stringency
+    ax2.plot(
+        dfc["date"],
+        dfc["stringency_index"],
+        color="tab:orange",
+        label="Stringency Index",
+        linewidth=1.5
+    )
+    ax2.set_ylabel("Stringency Index")
+
+    # title
+    ax1.set_title("India: Stringency Index vs Cases (7-day average)")
+
+    # annotate top 5 peaks
+    peaks = dfc.sort_values("cases_7d", ascending=False).head(5)
+    for _, r in peaks.iterrows():
+        ax1.annotate(
+            f"{int(r['cases_7d'])}",
+            (r["date"], r["cases_7d"]),
+            xytext=(0, 6),
+            textcoords="offset points",
+            fontsize=8,
+            ha="center",
+        )
+
+    # combined legend
+    fig.legend(loc="upper left")
+
+    # save output
+    save_fig(fig, outpath)
+
+
+if __name__ == "__main__":
+    try:
+        df = load_data()  # loads preprocessed CSV
+        df = df.sort_values(["country", "date"])
+
+        india_df = get_india_timeseries(df, "India")
+
+        out = os.path.join(OUT_DIR, "india_stringency_vs_cases.png")
+        plot_stringency_vs_cases(india_df, out)
+
+        print(f"Plot saved: {out}")
+
+    except Exception as e:
+        print("Error running India analysis:", e)
