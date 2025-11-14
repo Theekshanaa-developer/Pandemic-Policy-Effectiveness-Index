@@ -1,0 +1,29 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from utils.preprocess import load_data
+from utils.common import save_fig, ensure_outdir
+
+sns.set(style="whitegrid")
+df = load_data()   # loads CSV from data/raw
+df.head()
+india = df[df["country"].str.lower() == "india"].sort_values("date")
+india.tail()
+fig, ax1 = plt.subplots(figsize=(14, 6))
+ax2 = ax1.twinx()
+
+ax1.plot(india["date"], india["cases_7d"], linewidth=2, label="Cases (7-day avg)")
+ax2.plot(india["date"], india["stringency_index"], color="tab:orange", linewidth=1.5, label="Stringency Index")
+
+ax1.set_title("India: Stringency Index vs Daily Cases (7-day avg)")
+ax1.set_xlabel("Date")
+ax1.set_ylabel("Cases per 100k")
+ax2.set_ylabel("Stringency Index")
+
+fig.legend(loc="upper left")
+plt.show()
+ensure_outdir("1_india_case_study/outputs")
+out_path = "1_india_case_study/outputs/india_stringency_vs_cases.png"
+save_fig(fig, out_path)
+out_path
